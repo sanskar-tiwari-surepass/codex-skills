@@ -1,0 +1,4 @@
+interface:
+  display_name: "DaisyUI"
+  short_description: "Use DaisyUI guidance and references"
+  default_prompt: "Use $daisyui to work with DaisyUI components and styling in this project."

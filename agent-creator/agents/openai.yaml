@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Creator"
+  short_description: "Create one custom Codex agent safely"
+  default_prompt: "Use $agent-creator to gather any missing requirements and create one custom Codex agent TOML file."

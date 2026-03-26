@@ -88,6 +88,10 @@ rsync_args=(
   --delete
   --exclude=.git/
   --exclude=.system/
+  --exclude='__pycache__/'
+  --exclude='*.pyc'
+  --exclude='*.pyo'
+  --exclude='*.pyd'
   "--exclude=${script_name}"
 )
 

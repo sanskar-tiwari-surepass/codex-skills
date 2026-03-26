@@ -1,0 +1,6 @@
+interface:
+  display_name: "Scratchpad"
+  short_description: "Persistent repo memory and notes"
+  default_prompt: "Use $scratchpad to create or curate per-repo scratchpad memory before working."
+policy:
+  allow_implicit_invocation: true

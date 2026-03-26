@@ -1,0 +1,4 @@
+interface:
+  display_name: "Natural Content Writing"
+  short_description: "Write content without common AI tells"
+  default_prompt: "Use $natural-content-writing to draft or revise this piece in a natural, specific voice without stock AI phrasing."

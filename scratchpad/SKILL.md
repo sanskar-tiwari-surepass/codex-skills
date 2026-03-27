@@ -1,6 +1,6 @@
 ---
 name: scratchpad
-description: Create and maintain a per-repo `.scratchpad/` folder of markdown notes that preserve durable context across sessions. Use when the user asks for a scratchpad, napkin, repo memory, persistent notes, long-term memory, project runbooks, or wants Codex to remember mistakes, corrections, preferences, commands, or workflow patterns over time.
+description: Read and maintain per-repo `.scratchpad/` markdown memory for most repository-backed runs so durable context survives across sessions. Use by default when a repo contains `.scratchpad/`, especially for repeated work, investigations, user corrections, project runbooks, preferences, commands, pitfalls, or workflow patterns. Also use when the user asks for a scratchpad, repo memory, persistent notes, or long-term memory.
 ---
 
 # Scratchpad
@@ -8,6 +8,14 @@ description: Create and maintain a per-repo `.scratchpad/` folder of markdown no
 ## Overview
 
 Maintain `.scratchpad/` as a small, curated memory layer for the current repository. Prefer durable guidance over raw history so future sessions can reuse what matters quickly.
+
+## Default Use
+
+- For most repository-backed runs, check whether `.scratchpad/` exists near the repo root early in the turn.
+- If `.scratchpad/` exists, read `.scratchpad/index.md` before substantial work unless the task is clearly trivial, purely one-off, or unrelated to repo context.
+- After reading `index.md`, read only the relevant files for the current task.
+- During work, update `.scratchpad/` whenever you learn something reusable enough to help a future run move faster or avoid a repeat mistake.
+- Treat scratchpad as the default durable memory layer for repo work, not as an opt-in note system used only when the user names it explicitly.
 
 ## Bootstrap
 
@@ -21,6 +29,7 @@ Maintain `.scratchpad/` as a small, curated memory layer for the current reposit
 1. Read `.scratchpad/index.md` first.
 2. Read only the other files that are relevant to the task at hand.
 3. Apply what you learn silently. Do not waste user-facing output announcing that you read the scratchpad.
+4. If the task produces a reusable lesson, update the relevant scratchpad file before finishing the turn.
 
 ## Default File Set
 
@@ -52,6 +61,7 @@ Create additional Markdown files only when they clearly improve retrieval or red
 
 ## Update Policy
 
+- Default to writing a short update after substantial investigations, bug hunts, workflow discoveries, user corrections, or other reusable findings.
 - Update during work when you learn something reusable.
 - Rewrite and merge notes instead of appending raw journal entries.
 - Prefer short dated entries or bullets over paragraphs.

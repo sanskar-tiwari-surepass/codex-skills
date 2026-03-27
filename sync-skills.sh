@@ -87,6 +87,7 @@ rsync_args=(
   -avh
   --delete
   --exclude=.git/
+  --exclude=.gitignore
   --exclude=.system/
   --exclude='__pycache__/'
   --exclude='*.pyc'

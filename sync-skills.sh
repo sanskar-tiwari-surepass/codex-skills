@@ -9,14 +9,14 @@ Usage:
   ./sync-skills.sh pull [--apply] [--source PATH]
 
 Modes:
-  push    Sync this repo into ~/.codex/skills
-  pull    Sync ~/.codex/skills back into this repo
+  push    Sync this repo's skills/ into ~/.codex/skills and repo agents/ into ~/.codex/agents
+  pull    Sync ~/.codex/skills back into repo skills/ and ~/.codex/agents into repo agents/
 
 Behavior:
   - Dry-run by default
   - Use --apply to perform the sync
   - Uses --delete for full mirror sync
-  - Preserves any .system directory on either side
+  - Preserves any .system directory on either side for both skills and agents
   - Excludes this repo's .git directory
 
 Examples:
@@ -41,7 +41,11 @@ shift || true
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 script_name="$(basename "${BASH_SOURCE[0]}")"
-skills_dir="${HOME}/.codex/skills"
+codex_root="${HOME}/.codex"
+repo_skills_dir="${repo_root}/skills"
+repo_agents_dir="${repo_root}/agents"
+skills_dir="${codex_root}/skills"
+agents_dir="${codex_root}/agents"
 apply=false
 
 while [[ $# -gt 0 ]]; do
@@ -56,6 +60,7 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       skills_dir="${2:?missing path for --dest}"
+      agents_dir="$(cd "$(dirname "${skills_dir}")" && pwd)/agents"
       shift 2
       ;;
     --source)
@@ -64,6 +69,7 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       skills_dir="${2:?missing path for --source}"
+      agents_dir="$(cd "$(dirname "${skills_dir}")" && pwd)/agents"
       shift 2
       ;;
     -h|--help)
@@ -83,11 +89,15 @@ if [[ ! -d "${skills_dir}" ]]; then
   exit 1
 fi
 
-rsync_args=(
+skills_rsync_args=(
   -avh
   --delete
   --exclude=.git/
   --exclude=.gitignore
+  --exclude=.omx/
+  --exclude=.DS_Store
+  --exclude=agents/
+  --exclude=skills/
   --exclude=.system/
   --exclude='__pycache__/'
   --exclude='*.pyc'
@@ -96,18 +106,34 @@ rsync_args=(
   "--exclude=${script_name}"
 )
 
+agents_rsync_args=(
+  -avh
+  --delete
+  --exclude=.DS_Store
+  --exclude=.system/
+  --exclude='__pycache__/'
+  --exclude='*.pyc'
+  --exclude='*.pyo'
+  --exclude='*.pyd'
+)
+
 if [[ "${apply}" == false ]]; then
-  rsync_args+=(-n)
+  skills_rsync_args+=(-n)
+  agents_rsync_args+=(-n)
 fi
 
 case "${mode}" in
   push)
-    src="${repo_root}/"
-    dest="${skills_dir}/"
+    skills_src="${repo_skills_dir}/"
+    skills_dest="${skills_dir}/"
+    agents_src="${repo_agents_dir}/"
+    agents_dest="${agents_dir}/"
     ;;
   pull)
-    src="${skills_dir}/"
-    dest="${repo_root}/"
+    skills_src="${skills_dir}/"
+    skills_dest="${repo_skills_dir}/"
+    agents_src="${agents_dir}/"
+    agents_dest="${repo_agents_dir}/"
     ;;
   *)
     echo "Unknown mode: ${mode}" >&2
@@ -116,13 +142,50 @@ case "${mode}" in
     ;;
 esac
 
+run_sync() {
+  local label="$1"
+  local src="$2"
+  local dest="$3"
+  shift 3
+  local -a args=("$@")
+
+  if [[ ! -d "${src%/}" ]]; then
+    echo "Skipping ${label}: source directory not found: ${src%/}"
+    return 0
+  fi
+
+  if ! find "${src%/}" \
+    -mindepth 1 \
+    -not -path '*/.system/*' \
+    -not -name '.system' \
+    -not -path '*/__pycache__/*' \
+    -not -name '__pycache__' \
+    -not -name '*.pyc' \
+    -not -name '*.pyo' \
+    -not -name '*.pyd' \
+    | read -r _; then
+    echo "Skipping ${label}: source directory has no syncable content: ${src%/}"
+    return 0
+  fi
+
+  if [[ "${apply}" == true ]]; then
+    mkdir -p "${dest%/}"
+  fi
+
+  echo "${label}:"
+  echo "  Source: ${src}"
+  echo "  Destination: ${dest}"
+  rsync "${args[@]}" "${src}" "${dest}"
+}
+
 echo "Mode: ${mode}"
-echo "Source: ${src}"
-echo "Destination: ${dest}"
 if [[ "${apply}" == false ]]; then
   echo "Dry run: yes"
 else
   echo "Dry run: no"
 fi
+echo
 
-rsync "${rsync_args[@]}" "${src}" "${dest}"
+run_sync "Skills sync" "${skills_src}" "${skills_dest}" "${skills_rsync_args[@]}"
+echo
+run_sync "Agents sync" "${agents_src}" "${agents_dest}" "${agents_rsync_args[@]}"

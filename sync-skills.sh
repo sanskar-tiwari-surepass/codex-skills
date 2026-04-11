@@ -9,14 +9,16 @@ Usage:
   ./sync-skills.sh pull [--apply] [--source PATH]
 
 Modes:
-  push    Sync this repo's skills/ into ~/.codex/skills and repo agents/ into ~/.codex/agents
-  pull    Sync ~/.codex/skills back into repo skills/ and ~/.codex/agents into repo agents/
+  push    Sync this repo's skills/, agents/, hooks/, and hooks.json into ~/.codex/
+  pull    Sync ~/.codex/skills, agents, hooks, and hooks.json back into this repo
 
 Behavior:
   - Dry-run by default
   - Use --apply to perform the sync
   - Uses --delete for full mirror sync
   - Preserves any .system directory on either side for both skills and agents
+  - Mirrors repo hooks/ with ~/.codex/hooks
+  - Mirrors repo hooks.json with ~/.codex/hooks.json
   - Excludes this repo's .git directory
 
 Examples:
@@ -44,8 +46,12 @@ script_name="$(basename "${BASH_SOURCE[0]}")"
 codex_root="${HOME}/.codex"
 repo_skills_dir="${repo_root}/skills"
 repo_agents_dir="${repo_root}/agents"
+repo_hooks_dir="${repo_root}/hooks"
+repo_hooks_config="${repo_root}/hooks.json"
 skills_dir="${codex_root}/skills"
 agents_dir="${codex_root}/agents"
+hooks_dir="${codex_root}/hooks"
+hooks_config="${codex_root}/hooks.json"
 apply=false
 
 while [[ $# -gt 0 ]]; do
@@ -60,7 +66,10 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       skills_dir="${2:?missing path for --dest}"
-      agents_dir="$(cd "$(dirname "${skills_dir}")" && pwd)/agents"
+      codex_root="$(cd "$(dirname "${skills_dir}")" && pwd)"
+      agents_dir="${codex_root}/agents"
+      hooks_dir="${codex_root}/hooks"
+      hooks_config="${codex_root}/hooks.json"
       shift 2
       ;;
     --source)
@@ -69,7 +78,10 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       skills_dir="${2:?missing path for --source}"
-      agents_dir="$(cd "$(dirname "${skills_dir}")" && pwd)/agents"
+      codex_root="$(cd "$(dirname "${skills_dir}")" && pwd)"
+      agents_dir="${codex_root}/agents"
+      hooks_dir="${codex_root}/hooks"
+      hooks_config="${codex_root}/hooks.json"
       shift 2
       ;;
     -h|--help)
@@ -117,9 +129,25 @@ agents_rsync_args=(
   --exclude='*.pyd'
 )
 
+hooks_rsync_args=(
+  -avh
+  --delete
+  --exclude=.DS_Store
+  --exclude='__pycache__/'
+  --exclude='*.pyc'
+  --exclude='*.pyo'
+  --exclude='*.pyd'
+)
+
+file_rsync_args=(
+  -avh
+)
+
 if [[ "${apply}" == false ]]; then
   skills_rsync_args+=(-n)
   agents_rsync_args+=(-n)
+  hooks_rsync_args+=(-n)
+  file_rsync_args+=(-n)
 fi
 
 case "${mode}" in
@@ -128,12 +156,20 @@ case "${mode}" in
     skills_dest="${skills_dir}/"
     agents_src="${repo_agents_dir}/"
     agents_dest="${agents_dir}/"
+    hooks_src="${repo_hooks_dir}/"
+    hooks_dest="${hooks_dir}/"
+    hooks_config_src="${repo_hooks_config}"
+    hooks_config_dest="${hooks_config}"
     ;;
   pull)
     skills_src="${skills_dir}/"
     skills_dest="${repo_skills_dir}/"
     agents_src="${agents_dir}/"
     agents_dest="${repo_agents_dir}/"
+    hooks_src="${hooks_dir}/"
+    hooks_dest="${repo_hooks_dir}/"
+    hooks_config_src="${hooks_config}"
+    hooks_config_dest="${repo_hooks_config}"
     ;;
   *)
     echo "Unknown mode: ${mode}" >&2
@@ -178,6 +214,28 @@ run_sync() {
   rsync "${args[@]}" "${src}" "${dest}"
 }
 
+run_file_sync() {
+  local label="$1"
+  local src="$2"
+  local dest="$3"
+  shift 3
+  local -a args=("$@")
+
+  if [[ ! -f "${src}" ]]; then
+    echo "Skipping ${label}: source file not found: ${src}"
+    return 0
+  fi
+
+  if [[ "${apply}" == true ]]; then
+    mkdir -p "$(dirname "${dest}")"
+  fi
+
+  echo "${label}:"
+  echo "  Source: ${src}"
+  echo "  Destination: ${dest}"
+  rsync "${args[@]}" "${src}" "${dest}"
+}
+
 echo "Mode: ${mode}"
 if [[ "${apply}" == false ]]; then
   echo "Dry run: yes"
@@ -189,3 +247,7 @@ echo
 run_sync "Skills sync" "${skills_src}" "${skills_dest}" "${skills_rsync_args[@]}"
 echo
 run_sync "Agents sync" "${agents_src}" "${agents_dest}" "${agents_rsync_args[@]}"
+echo
+run_sync "Hooks sync" "${hooks_src}" "${hooks_dest}" "${hooks_rsync_args[@]}"
+echo
+run_file_sync "Hooks config sync" "${hooks_config_src}" "${hooks_config_dest}" "${file_rsync_args[@]}"

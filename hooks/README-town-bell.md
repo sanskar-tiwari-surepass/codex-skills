@@ -8,7 +8,7 @@ Behavior:
 
 - Always rings the bell when a Stop hook fires.
 - Only activates stop enforcement when the transcript contains an explicit `$stop-checker` invocation.
-- Only requests one continuation per turn, using the native `stop_hook_active` guard.
+- Re-checks every stop attempt in the thread, so a later `continue` or `blocked` artifact is still forced to continue.
 - Current continuation checks:
   - require a `<stop_checker>` XML artifact in the latest assistant message
   - allow stop when the artifact says `done`

@@ -1,5 +1,17 @@
 {
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /Users/sanskartiwari/.codex/hooks/user_prompt_wrapper.py",
+            "timeout": 5,
+            "statusMessage": "Wrapping prompt"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

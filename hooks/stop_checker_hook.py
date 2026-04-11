@@ -193,9 +193,6 @@ def main():
     if not marker_active_for_thread(transcript_path):
         return 0
 
-    if payload.get("stop_hook_active"):
-        return 0
-
     decision, error_message = parse_stop_xml(payload.get("last_assistant_message"))
     prompt = build_continuation_prompt(error_message=error_message, decision=decision)
     if prompt is None:

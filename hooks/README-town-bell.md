@@ -7,8 +7,9 @@ Town bell Stop hook
 Behavior:
 
 - Always rings the bell when a Stop hook fires.
-- Only activates stop enforcement when the transcript contains an explicit `$stop-checker` invocation.
-- Re-checks every stop attempt in the thread, so a later `continue` or `blocked` artifact is still forced to continue.
+- Activates stop enforcement only after an explicit user `$stop-checker` invocation.
+- Clears stop enforcement after a valid `done` artifact, or after an explicit user clear command like `$stop-checker clear`.
+- Re-checks every stop attempt while the hook is active, so a later `continue` or `blocked` artifact is still forced to continue.
 - Current continuation checks:
   - require a `<stop_checker>` XML artifact in the latest assistant message
   - allow stop when the artifact says `done`

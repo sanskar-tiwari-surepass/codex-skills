@@ -13,6 +13,7 @@ from pathlib import Path
 SOUND_PATH = Path("/Users/sanskartiwari/.codex/assets/town-bell.mp3")
 STATUS_VALUES = {"done", "continue", "blocked"}
 MARKER = "$stop-checker"
+CLEAR_WORDS = {"clear", "off", "disable", "deactivate", "reset"}
 
 
 def resolve_state_db():
@@ -95,21 +96,53 @@ def iter_rollout_events(transcript_path):
                 continue
 
 
+def normalize_message_text(text):
+    return re.sub(r"[^a-z0-9$-]+", " ", (text or "").lower())
+
+
+def stop_checker_command(message_text):
+    normalized = normalize_message_text(message_text)
+    if MARKER not in normalized:
+        return None
+    for word in CLEAR_WORDS:
+        if f"{MARKER} {word}" in normalized or f"{word} {MARKER}" in normalized:
+            return "clear"
+    return "activate"
+
+
+def extract_assistant_message(payload):
+    return "".join(
+        chunk.get("text", "")
+        for chunk in payload.get("content", [])
+        if chunk.get("type") == "output_text"
+    )
+
+
 def marker_active_for_thread(transcript_path):
+    active = False
     for item in iter_rollout_events(transcript_path) or []:
+        if item.get("type") == "event_msg":
+            payload = item.get("payload", {})
+            if payload.get("type") != "user_message":
+                continue
+            command = stop_checker_command(payload.get("message", ""))
+            if command == "activate":
+                active = True
+            elif command == "clear":
+                active = False
+            continue
+
         if item.get("type") != "response_item":
             continue
         payload = item.get("payload", {})
-        if payload.get("type") != "message" or payload.get("role") != "user":
+        if not active:
             continue
-        text = " ".join(
-            chunk.get("text", "")
-            for chunk in payload.get("content", [])
-            if chunk.get("type") == "input_text"
-        )
-        if MARKER in text:
-            return True
-    return False
+        if payload.get("type") != "message" or payload.get("role") != "assistant":
+            continue
+        decision, _ = parse_stop_xml(extract_assistant_message(payload))
+        if active and decision and decision["status"] == "done":
+            active = False
+    return active
 
 
 def parse_stop_xml(last_assistant_message):

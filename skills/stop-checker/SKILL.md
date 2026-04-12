@@ -10,7 +10,7 @@ description: Explicit completion-control skill for tasks that must not end early
 Use this skill only when the user explicitly asks for `$stop-checker`.
 
 Treat the request as completion-sensitive work. Do not end the turn on partial progress, a draft answer, or an unverified implementation.
-Once `$stop-checker` is activated in a thread, emit a final XML stop artifact in every assistant final message for that thread.
+Once `$stop-checker` is activated in a thread, emit a final XML stop artifact in every assistant final message until the hook is cleared.
 The XML is metadata only. It never replaces the normal user-facing answer.
 
 Premature `done` is a known model failure mode.
@@ -100,6 +100,10 @@ Rules:
 - Use `done` only when you would be comfortable if the user immediately ended the thread and did not give you another chance to continue.
 - If there is any meaningful unfinished execution, verification, integration, or evidence-gathering left, do not emit `done`.
 - If the hook asks for recovery because the XML is missing or invalid, default to `continue` unless completion is unquestionably true.
+
+Clearing:
+- A valid `done` stop artifact clears `$stop-checker` for later turns in the thread.
+- You can also clear it explicitly with a user message like `$stop-checker clear`.
 
 ## Response Style
 
